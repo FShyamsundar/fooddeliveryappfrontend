@@ -71,7 +71,10 @@ const RestaurantPage = () => {
 
   if (!restaurant) return <div>Restaurant not found</div>;
 
-  const categories = ["All", ...new Set(menu.map((item) => item.category))];
+  const categories = [
+    "All",
+    ...new Set(Array.isArray(menu) ? menu.map((item) => item.category) : []),
+  ];
   const filteredMenu =
     selectedCategory === "All"
       ? menu
@@ -183,77 +186,82 @@ const RestaurantPage = () => {
 
         {/* Menu Items */}
         <div className="grid gap-4">
-          {filteredMenu.map((item) => (
-            <MenuItem key={item._id} item={item} isOwner={false} />
-          ))}
+          {Array.isArray(filteredMenu) &&
+            filteredMenu.map((item) => (
+              <MenuItem key={item._id} item={item} isOwner={false} />
+            ))}
         </div>
 
         {/* Reviews Section */}
         <div className="mt-12">
           <h2 className="text-3xl font-bold mb-6">Reviews</h2>
           <div className="space-y-4">
-            {reviews.map((review) => (
-              <div key={review._id} className="bg-white p-6 rounded-lg shadow">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-semibold">{review.user?.name}</span>
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <FiStar
-                        key={i}
-                        className={
-                          i < review.rating
-                            ? "text-yellow-500 fill-current"
-                            : "text-gray-300"
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-                <p className="text-gray-700">{review.comment}</p>
-                {review.reply && (
-                  <div className="mt-4 ml-6 p-4 bg-gray-50 rounded">
-                    <p className="font-semibold text-sm mb-1">
-                      Restaurant Reply:
-                    </p>
-                    <p className="text-gray-700">{review.reply.text}</p>
-                  </div>
-                )}
-                {isOwner && !review.reply && (
-                  <div className="mt-4">
-                    {replyingTo === review._id ? (
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={replyText}
-                          onChange={(e) => setReplyText(e.target.value)}
-                          placeholder="Write your reply..."
-                          className="input-field flex-1"
+            {Array.isArray(reviews) &&
+              reviews.map((review) => (
+                <div
+                  key={review._id}
+                  className="bg-white p-6 rounded-lg shadow"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-semibold">{review.user?.name}</span>
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <FiStar
+                          key={i}
+                          className={
+                            i < review.rating
+                              ? "text-yellow-500 fill-current"
+                              : "text-gray-300"
+                          }
                         />
-                        <button
-                          onClick={() => handleReplySubmit(review._id)}
-                          className="btn-primary"
-                        >
-                          Send
-                        </button>
-                        <button
-                          onClick={() => setReplyingTo(null)}
-                          className="btn-secondary"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setReplyingTo(review._id)}
-                        className="text-orange-500 text-sm font-medium"
-                      >
-                        Reply to review
-                      </button>
-                    )}
+                      ))}
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+                  <p className="text-gray-700">{review.comment}</p>
+                  {review.reply && (
+                    <div className="mt-4 ml-6 p-4 bg-gray-50 rounded">
+                      <p className="font-semibold text-sm mb-1">
+                        Restaurant Reply:
+                      </p>
+                      <p className="text-gray-700">{review.reply.text}</p>
+                    </div>
+                  )}
+                  {isOwner && !review.reply && (
+                    <div className="mt-4">
+                      {replyingTo === review._id ? (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            placeholder="Write your reply..."
+                            className="input-field flex-1"
+                          />
+                          <button
+                            onClick={() => handleReplySubmit(review._id)}
+                            className="btn-primary"
+                          >
+                            Send
+                          </button>
+                          <button
+                            onClick={() => setReplyingTo(null)}
+                            className="btn-secondary"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setReplyingTo(review._id)}
+                          className="text-orange-500 text-sm font-medium"
+                        >
+                          Reply to review
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
           </div>
         </div>
       </div>

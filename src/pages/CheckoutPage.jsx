@@ -109,15 +109,18 @@ const CheckoutPage = () => {
 
     try {
       const orderData = {
-        restaurant: cart[0].restaurant,
-        items: cart.map((item) => ({
-          menuItem: item._id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          extras: item.extras,
-          specialInstructions: item.specialInstructions,
-        })),
+        restaurant:
+          Array.isArray(cart) && cart.length > 0 ? cart[0].restaurant : null,
+        items: Array.isArray(cart)
+          ? cart.map((item) => ({
+              menuItem: item._id,
+              name: item.name,
+              price: item.price,
+              quantity: item.quantity,
+              extras: item.extras,
+              specialInstructions: item.specialInstructions,
+            }))
+          : [],
         deliveryAddress: selectedAddress,
         deliveryType,
         scheduledTime: deliveryType === "scheduled" ? scheduledTime : null,
