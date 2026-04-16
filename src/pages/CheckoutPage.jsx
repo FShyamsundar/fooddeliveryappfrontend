@@ -16,12 +16,8 @@ const CheckoutPage = () => {
   const [error, setError] = useState("");
   const [deliveryType, setDeliveryType] = useState("instant");
   const [scheduledTime, setScheduledTime] = useState("");
-  const [selectedAddress, setSelectedAddress] = useState(
-    user?.addresses?.[0] || null,
-  );
-  const [showAddressForm, setShowAddressForm] = useState(
-    !user?.addresses?.length,
-  );
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [showAddressForm, setShowAddressForm] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("online");
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
@@ -264,19 +260,42 @@ const CheckoutPage = () => {
                   {selectedAddress.zipCode}
                 </p>
                 <button
-                  onClick={() => setShowAddressForm(true)}
+                  onClick={() => setSelectedAddress(null)}
                   className="text-orange-600 hover:text-orange-700 mt-2"
                 >
                   Change Address
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => setShowAddressForm(true)}
-                className="btn-secondary"
-              >
-                Add Delivery Address
-              </button>
+              <div className="space-y-4">
+                {user?.addresses?.length > 0 && (
+                  <div>
+                    <h3 className="font-medium mb-2">Select Address</h3>
+                    <div className="space-y-2">
+                      {user.addresses.map((address, index) => (
+                        <div
+                          key={index}
+                          onClick={() => setSelectedAddress(address)}
+                          className="p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-orange-300 hover:bg-orange-50"
+                        >
+                          <p className="font-medium">{address.label}</p>
+                          <p className="text-sm text-gray-600">
+                            {address.street}, {address.city}, {address.state}{" "}
+                            {address.zipCode}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-center my-4 text-gray-500">or</div>
+                  </div>
+                )}
+                <button
+                  onClick={() => setShowAddressForm(true)}
+                  className="btn-secondary w-full"
+                >
+                  Add New Address
+                </button>
+              </div>
             )}
           </div>
 

@@ -5,6 +5,8 @@ import {
   getRestaurantMenu,
   getRestaurantReviews,
   replyToReview,
+  createReview,
+  getUserOrders,
 } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import MenuItem from "../components/MenuItem";
@@ -22,6 +24,11 @@ const RestaurantPage = () => {
   const [loading, setLoading] = useState(true);
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState("");
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewOrder, setReviewOrder] = useState("");
+  const [userOrders, setUserOrders] = useState([]);
 
   const isOwner = user && restaurant && restaurant.owner === user._id;
 
@@ -35,14 +42,20 @@ const RestaurantPage = () => {
 
   const fetchData = async () => {
     try {
-      const [restaurantRes, menuRes, reviewsRes] = await Promise.all([
-        getRestaurantById(id),
-        getRestaurantMenu(id),
-        getRestaurantReviews(id),
-      ]);
+      const [restaurantRes, menuRes, reviewsRes, ordersRes] = await Promise.all(
+        [
+          getRestaurantById(id),
+          getRestaurantMenu(id),
+          getRestaurantReviews(id),
+          user?.role === "customer"
+            ? getUserOrders()
+            : Promise.resolve({ data: [] }),
+        ],
+      );
       setRestaurant(restaurantRes.data);
       setMenu(menuRes.data);
       setReviews(reviewsRes.data);
+      setUserOrders(ordersRes.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -58,6 +71,25 @@ const RestaurantPage = () => {
       fetchData();
     } catch (error) {
       alert("Failed to post reply");
+    }
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    try {
+      await createReview({
+        restaurant: id,
+        order: reviewOrder,
+        rating: reviewRating,
+        comment: reviewComment,
+      });
+      setShowReviewForm(false);
+      setReviewRating(5);
+      setReviewComment("");
+      setReviewOrder("");
+      fetchData();
+    } catch (error) {
+      alert(error.response?.data?.message || "Failed to submit review");
     }
   };
 
@@ -194,7 +226,93 @@ const RestaurantPage = () => {
 
         {/* Reviews Section */}
         <div className="mt-12">
-          <h2 className="text-3xl font-bold mb-6">Reviews</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-3xl font-bold">Reviews</h2>
+            {user?.role === "customer" &&
+              userOrders.some(
+                (order) =>
+                  order.restaurant._id === id && order.status === "delivered",
+              ) && (
+                <button
+                  onClick={() => setShowReviewForm(!showReviewForm)}
+                  className="btn-primary"
+                >
+                  {showReviewForm ? "Cancel" : "Write a Review"}
+                </button>
+              )}
+          </div>
+
+          {showReviewForm && (
+            <div className="bg-white p-6 rounded-lg shadow mb-6">
+              <h3 className="text-xl font-semibold mb-4">Write a Review</h3>
+              <form onSubmit={handleSubmitReview} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Rating
+                  </label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewRating(star)}
+                        className="text-2xl"
+                      >
+                        <FiStar
+                          className={
+                            star <= reviewRating
+                              ? "text-yellow-500 fill-current"
+                              : "text-gray-300"
+                          }
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Select Order
+                  </label>
+                  <select
+                    value={reviewOrder}
+                    onChange={(e) => setReviewOrder(e.target.value)}
+                    className="input-field w-full"
+                    required
+                  >
+                    <option value="">Choose an order...</option>
+                    {userOrders
+                      .filter(
+                        (order) =>
+                          order.restaurant._id === id &&
+                          order.status === "delivered",
+                      )
+                      .map((order) => (
+                        <option key={order._id} value={order._id}>
+                          Order #{order._id.slice(-8)} -{" "}
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Comment
+                  </label>
+                  <textarea
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder="Share your experience..."
+                    className="input-field w-full h-24 resize-none"
+                    required
+                  />
+                </div>
+                <button type="submit" className="btn-primary">
+                  Submit Review
+                </button>
+              </form>
+            </div>
+          )}
+
           <div className="space-y-4">
             {Array.isArray(reviews) &&
               reviews.map((review) => (
