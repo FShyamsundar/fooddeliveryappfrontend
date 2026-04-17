@@ -209,10 +209,22 @@ const CheckoutPage = () => {
       };
 
       const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", function (response) {
+        setError(
+          response.error?.description ||
+            response.error?.reason ||
+            "Payment failed. International cards may not be supported. Please try a different card or contact support.",
+        );
+        setLoading(false);
+      });
       rzp.open();
       setLoading(false);
     } catch (err) {
-      setError(err.response?.data?.message || "Payment failed");
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Payment failed. If international cards are blocked, please try a domestic card or contact support.",
+      );
       setLoading(false);
     }
   };
@@ -427,6 +439,11 @@ const CheckoutPage = () => {
                 />
                 Cash on Delivery
               </label>
+              <div className="bg-orange-50 text-orange-800 p-3 rounded-lg text-sm">
+                Note: Some Razorpay accounts do not support international cards.
+                If you see that error, please try a domestic card or contact
+                support for help.
+              </div>
             </div>
           </div>
 
