@@ -18,6 +18,10 @@ export const login = (data) => API.post("/auth/login", data);
 export const getProfile = () => API.get("/auth/profile");
 export const updateProfile = (data) => API.put("/auth/profile", data);
 export const addAddress = (data) => API.post("/auth/address", data);
+export const updateAddress = (addressId, data) =>
+  API.put(`/auth/address/${addressId}`, data);
+export const deleteAddress = (addressId) =>
+  API.delete(`/auth/address/${addressId}`);
 export const toggleFavorite = (id) => API.post(`/auth/favorite/${id}`);
 
 // Restaurants

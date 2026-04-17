@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getProfile, updateProfile, addAddress } from "../services/api";
+import {
+  getProfile,
+  updateProfile,
+  addAddress,
+  updateAddress,
+  deleteAddress,
+} from "../services/api";
 import { validateEmail, validatePhone } from "../utils/formValidation";
 import { FiUser, FiMapPin, FiCreditCard, FiHome } from "react-icons/fi";
 
@@ -22,6 +28,7 @@ const Profile = () => {
     zipCode: "",
     isDefault: false,
   });
+  const [editingAddressId, setEditingAddressId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -75,6 +82,18 @@ const Profile = () => {
     }
   };
 
+  const resetAddressForm = () => {
+    setEditingAddressId(null);
+    setNewAddress({
+      label: "",
+      street: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      isDefault: false,
+    });
+  };
+
   const handleAddAddress = async (e) => {
     e.preventDefault();
     if (
@@ -91,26 +110,74 @@ const Profile = () => {
     setLoading(true);
     setMessage("");
     try {
-      await addAddress({
-        ...newAddress,
-        label: newAddress.label.trim(),
-        street: newAddress.street.trim(),
-        city: newAddress.city.trim(),
-        state: newAddress.state.trim(),
-        zipCode: newAddress.zipCode.trim(),
-      });
-      setMessage("Address added successfully");
-      setNewAddress({
-        label: "",
-        street: "",
-        city: "",
-        state: "",
-        zipCode: "",
-        isDefault: false,
-      });
+      if (editingAddressId) {
+        await updateAddress(editingAddressId, {
+          ...newAddress,
+          label: newAddress.label.trim(),
+          street: newAddress.street.trim(),
+          city: newAddress.city.trim(),
+          state: newAddress.state.trim(),
+          zipCode: newAddress.zipCode.trim(),
+        });
+        setMessage("Address updated successfully");
+      } else {
+        await addAddress({
+          ...newAddress,
+          label: newAddress.label.trim(),
+          street: newAddress.street.trim(),
+          city: newAddress.city.trim(),
+          state: newAddress.state.trim(),
+          zipCode: newAddress.zipCode.trim(),
+        });
+        setMessage("Address added successfully");
+      }
+      resetAddressForm();
       fetchProfile();
     } catch (error) {
-      setMessage(error.response?.data?.message || "Error adding address");
+      setMessage(
+        error.response?.data?.message ||
+          (editingAddressId
+            ? "Error updating address"
+            : "Error adding address"),
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditAddress = (address) => {
+    setEditingAddressId(address._id);
+    setNewAddress({
+      label: address.label,
+      street: address.street,
+      city: address.city,
+      state: address.state,
+      zipCode: address.zipCode,
+      isDefault: address.isDefault,
+    });
+    setActiveTab("addresses");
+    setMessage("");
+  };
+
+  const handleDeleteAddress = async (addressId, isDefaultAddress) => {
+    if (!window.confirm("Delete this address?")) return;
+    setLoading(true);
+    setMessage("");
+    try {
+      await deleteAddress(addressId);
+      setMessage("Address deleted successfully");
+      fetchProfile();
+      if (isDefaultAddress && profile.addresses?.length > 1) {
+        const nextDefault = profile.addresses.find(
+          (addr) => addr._id !== addressId,
+        );
+        if (nextDefault) {
+          await updateAddress(nextDefault._id, { isDefault: true });
+          fetchProfile();
+        }
+      }
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Error deleting address");
     } finally {
       setLoading(false);
     }
@@ -237,21 +304,41 @@ const Profile = () => {
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-bold mb-4">Saved Addresses</h2>
               <div className="space-y-3">
-                {profile.addresses?.map((address, idx) => (
-                  <div key={idx} className="border rounded p-4">
-                    <div className="flex justify-between items-start">
+                {profile.addresses?.map((address) => (
+                  <div key={address._id} className="border rounded p-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
-                        <p className="font-semibold">{address.label}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold">{address.label}</p>
+                          {address.isDefault && (
+                            <span className="bg-primary text-white text-xs px-2 py-1 rounded">
+                              Default
+                            </span>
+                          )}
+                        </div>
                         <p className="text-gray-600">
                           {address.street}, {address.city}, {address.state}{" "}
                           {address.zipCode}
                         </p>
                       </div>
-                      {address.isDefault && (
-                        <span className="bg-primary text-white text-xs px-2 py-1 rounded">
-                          Default
-                        </span>
-                      )}
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEditAddress(address)}
+                          className="text-primary underline"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDeleteAddress(address._id, address.isDefault)
+                          }
+                          className="text-red-500 underline"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -259,7 +346,9 @@ const Profile = () => {
             </div>
 
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold mb-4">Add New Address</h2>
+              <h2 className="text-xl font-bold mb-4">
+                {editingAddressId ? "Edit Address" : "Add New Address"}
+              </h2>
               <form onSubmit={handleAddAddress} className="space-y-4">
                 <div>
                   <label className="block font-semibold mb-2">
@@ -343,13 +432,30 @@ const Profile = () => {
                   />
                   <span>Set as default address</span>
                 </label>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-primary"
-                >
-                  {loading ? "Adding..." : "Add Address"}
-                </button>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-primary"
+                  >
+                    {loading
+                      ? editingAddressId
+                        ? "Updating..."
+                        : "Saving..."
+                      : editingAddressId
+                        ? "Update Address"
+                        : "Add Address"}
+                  </button>
+                  {editingAddressId && (
+                    <button
+                      type="button"
+                      onClick={resetAddressForm}
+                      className="btn-secondary"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </form>
             </div>
           </div>
