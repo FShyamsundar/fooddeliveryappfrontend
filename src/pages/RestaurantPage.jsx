@@ -24,13 +24,16 @@ const RestaurantPage = () => {
   const [loading, setLoading] = useState(true);
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState("");
+  const [replyError, setReplyError] = useState("");
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewOrder, setReviewOrder] = useState("");
+  const [reviewError, setReviewError] = useState("");
   const [userOrders, setUserOrders] = useState([]);
 
-  const isOwner = user && restaurant && restaurant.owner === user._id;
+  const ownerId = restaurant?.owner?._id || restaurant?.owner;
+  const isOwner = user && restaurant && String(ownerId) === String(user._id);
 
   useEffect(() => {
     if (!user) {
@@ -64,24 +67,44 @@ const RestaurantPage = () => {
   };
 
   const handleReplySubmit = async (reviewId) => {
+    if (!replyText.trim()) {
+      setReplyError("Reply cannot be empty.");
+      return;
+    }
+
     try {
-      await replyToReview(reviewId, replyText);
+      setReplyError("");
+      await replyToReview(reviewId, replyText.trim());
       setReplyingTo(null);
       setReplyText("");
       fetchData();
     } catch (error) {
-      alert("Failed to post reply");
+      setReplyError(error.response?.data?.message || "Failed to post reply");
     }
   };
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
+    if (!reviewOrder) {
+      setReviewError("Please select the order you are reviewing.");
+      return;
+    }
+    if (reviewRating < 1 || reviewRating > 5) {
+      setReviewError("Please select a rating between 1 and 5 stars.");
+      return;
+    }
+    if (!reviewComment.trim() || reviewComment.trim().length < 10) {
+      setReviewError("Review text must be at least 10 characters.");
+      return;
+    }
+
     try {
+      setReviewError("");
       await createReview({
         restaurant: id,
         order: reviewOrder,
         rating: reviewRating,
-        comment: reviewComment,
+        comment: reviewComment.trim(),
       });
       setShowReviewForm(false);
       setReviewRating(5);
@@ -89,7 +112,9 @@ const RestaurantPage = () => {
       setReviewOrder("");
       fetchData();
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to submit review");
+      setReviewError(
+        error.response?.data?.message || "Failed to submit review",
+      );
     }
   };
 
@@ -111,6 +136,14 @@ const RestaurantPage = () => {
     selectedCategory === "All"
       ? menu
       : menu.filter((item) => item.category === selectedCategory);
+
+  const eligibleOrders = userOrders
+    .filter(
+      (order) =>
+        (order.restaurant?._id || order.restaurant) === id ||
+        String(order.restaurant?._id || order.restaurant) === String(id),
+    )
+    .filter((order) => order.status === "delivered");
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -229,23 +262,33 @@ const RestaurantPage = () => {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-3xl font-bold">Reviews</h2>
             {user?.role === "customer" &&
-              userOrders.some(
-                (order) =>
-                  order.restaurant._id === id && order.status === "delivered",
-              ) && (
+              (eligibleOrders.length > 0 ? (
                 <button
-                  onClick={() => setShowReviewForm(!showReviewForm)}
+                  onClick={() => {
+                    setShowReviewForm(!showReviewForm);
+                    setReviewError("");
+                  }}
                   className="btn-primary"
                 >
                   {showReviewForm ? "Cancel" : "Write a Review"}
                 </button>
-              )}
+              ) : (
+                <p className="text-sm text-gray-500">
+                  You can leave a review after one of your delivered orders from
+                  this restaurant.
+                </p>
+              ))}
           </div>
 
           {showReviewForm && (
             <div className="bg-white p-6 rounded-lg shadow mb-6">
               <h3 className="text-xl font-semibold mb-4">Write a Review</h3>
               <form onSubmit={handleSubmitReview} className="space-y-4">
+                {reviewError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+                    {reviewError}
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Rating
@@ -280,19 +323,16 @@ const RestaurantPage = () => {
                     required
                   >
                     <option value="">Choose an order...</option>
-                    {userOrders
-                      .filter(
-                        (order) =>
-                          order.restaurant._id === id &&
-                          order.status === "delivered",
-                      )
-                      .map((order) => (
-                        <option key={order._id} value={order._id}>
-                          Order #{order._id.slice(-8)} -{" "}
-                          {new Date(order.createdAt).toLocaleDateString()}
-                        </option>
-                      ))}
+                    {eligibleOrders.map((order) => (
+                      <option key={order._id} value={order._id}>
+                        Order #{order._id.slice(-8)} -{" "}
+                        {new Date(order.createdAt).toLocaleDateString()}
+                      </option>
+                    ))}
                   </select>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Reviews are linked to your delivered order for authenticity.
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">
@@ -347,26 +387,34 @@ const RestaurantPage = () => {
                   {isOwner && !review.reply && (
                     <div className="mt-4">
                       {replyingTo === review._id ? (
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={replyText}
-                            onChange={(e) => setReplyText(e.target.value)}
-                            placeholder="Write your reply..."
-                            className="input-field flex-1"
-                          />
-                          <button
-                            onClick={() => handleReplySubmit(review._id)}
-                            className="btn-primary"
-                          >
-                            Send
-                          </button>
-                          <button
-                            onClick={() => setReplyingTo(null)}
-                            className="btn-secondary"
-                          >
-                            Cancel
-                          </button>
+                        <div className="space-y-3">
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder="Write your reply..."
+                              className="input-field flex-1"
+                            />
+                            <button
+                              onClick={() => handleReplySubmit(review._id)}
+                              className="btn-primary"
+                            >
+                              Send
+                            </button>
+                            <button
+                              onClick={() => {
+                                setReplyingTo(null);
+                                setReplyError("");
+                              }}
+                              className="btn-secondary"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                          {replyError && (
+                            <p className="text-sm text-red-600">{replyError}</p>
+                          )}
                         </div>
                       ) : (
                         <button

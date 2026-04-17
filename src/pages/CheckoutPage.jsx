@@ -50,14 +50,33 @@ const CheckoutPage = () => {
   const total = subtotal + deliveryFee + tax - discount;
 
   const handleAddAddress = async () => {
+    if (
+      !newAddress.label.trim() ||
+      !newAddress.street.trim() ||
+      !newAddress.city.trim() ||
+      !newAddress.state.trim() ||
+      !newAddress.zipCode.trim()
+    ) {
+      setError("Complete all address fields before adding.");
+      return;
+    }
+
     try {
       setLoading(true);
-      await addAddress({ ...newAddress, isDefault: true });
+      await addAddress({
+        ...newAddress,
+        label: newAddress.label.trim(),
+        street: newAddress.street.trim(),
+        city: newAddress.city.trim(),
+        state: newAddress.state.trim(),
+        zipCode: newAddress.zipCode.trim(),
+        isDefault: true,
+      });
       setSelectedAddress(newAddress);
       setShowAddressForm(false);
       window.location.reload();
     } catch (err) {
-      setError("Failed to add address");
+      setError(err.response?.data?.message || "Failed to add address");
     } finally {
       setLoading(false);
     }
@@ -96,7 +115,15 @@ const CheckoutPage = () => {
 
   const handlePayment = async () => {
     if (!selectedAddress) {
-      setError("Please add a delivery address");
+      setError("Please add a delivery address.");
+      return;
+    }
+    if (deliveryType === "scheduled" && !scheduledTime.trim()) {
+      setError("Please choose a scheduled delivery time.");
+      return;
+    }
+    if (!Array.isArray(cart) || cart.length === 0) {
+      setError("Your cart is empty. Add items before checking out.");
       return;
     }
 

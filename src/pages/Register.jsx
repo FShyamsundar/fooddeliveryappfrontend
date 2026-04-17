@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { validateEmail, validatePhone } from "../utils/formValidation";
 
 const Register = () => {
   const { register, user } = useAuth();
@@ -24,8 +25,24 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!formData.name.trim()) {
+      setError("Please enter your full name.");
+      return;
+    }
+    if (!validateEmail(formData.email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (!validatePhone(formData.phone)) {
+      setError("Please enter a valid phone number.");
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+      setError("Passwords do not match.");
       return;
     }
 
@@ -33,10 +50,10 @@ const Register = () => {
     setError("");
     try {
       await register({
-        name: formData.name,
-        email: formData.email,
+        name: formData.name.trim(),
+        email: formData.email.trim(),
         password: formData.password,
-        phone: formData.phone,
+        phone: formData.phone.trim(),
       });
       navigate("/");
     } catch (err) {
