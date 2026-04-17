@@ -29,6 +29,15 @@ const CheckoutPage = () => {
     zipCode: "",
   });
 
+  useEffect(() => {
+    if (!selectedAddress && user?.addresses?.length > 0) {
+      const defaultAddress = user.addresses.find((addr) => addr.isDefault);
+      if (defaultAddress) {
+        setSelectedAddress(defaultAddress);
+      }
+    }
+  }, [user, selectedAddress]);
+
   const subtotal = cart.reduce((sum, item) => {
     const extrasTotal = item.extras?.reduce((s, e) => s + e.price, 0) || 0;
     return sum + (item.price + extrasTotal) * item.quantity;
@@ -48,6 +57,8 @@ const CheckoutPage = () => {
     : 0;
 
   const total = subtotal + deliveryFee + tax - discount;
+  const savedAddresses = user?.addresses ?? [];
+  const hasDefaultAddress = savedAddresses.some((addr) => addr.isDefault);
 
   const handleAddAddress = async () => {
     if (
@@ -115,7 +126,9 @@ const CheckoutPage = () => {
 
   const handlePayment = async () => {
     if (!selectedAddress) {
-      setError("Please add a delivery address.");
+      setError(
+        "Please choose a delivery address from your saved addresses or add a new one.",
+      );
       return;
     }
     if (deliveryType === "scheduled" && !scheduledTime.trim()) {
@@ -295,25 +308,55 @@ const CheckoutPage = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {user?.addresses?.length > 0 && (
-                  <div>
-                    <h3 className="font-medium mb-2">Select Address</h3>
-                    <div className="space-y-2">
-                      {user.addresses.map((address, index) => (
-                        <div
-                          key={index}
-                          onClick={() => setSelectedAddress(address)}
-                          className="p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-orange-300 hover:bg-orange-50"
-                        >
-                          <p className="font-medium">{address.label}</p>
-                          <p className="text-sm text-gray-600">
-                            {address.street}, {address.city}, {address.state}{" "}
-                            {address.zipCode}
-                          </p>
-                        </div>
-                      ))}
+                {savedAddresses.length > 0 ? (
+                  <>
+                    {!hasDefaultAddress && (
+                      <div className="bg-yellow-50 text-yellow-800 p-3 rounded-lg mb-4">
+                        You have saved addresses but no default address set.
+                        Please choose a delivery address below or set a default
+                        address in your profile.
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="font-medium mb-2">
+                        {hasDefaultAddress
+                          ? "Select Address"
+                          : "Choose Delivery Address"}
+                      </h3>
+                      <div className="space-y-2">
+                        {savedAddresses.map((address) => (
+                          <div
+                            key={address._id}
+                            onClick={() => setSelectedAddress(address)}
+                            className="p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-orange-300 hover:bg-orange-50"
+                          >
+                            <div className="flex items-center justify-between">
+                              <p className="font-medium">{address.label}</p>
+                              {address.isDefault && (
+                                <span className="text-sm text-orange-600">
+                                  Default
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              {address.street}, {address.city}, {address.state}{" "}
+                              {address.zipCode}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Contact details will use your profile information:{" "}
+                      {user?.name || "Name missing"},{" "}
+                      {user?.email || "Email missing"},{" "}
+                      {user?.phone || "Phone missing"}.
                     </div>
                     <div className="text-center my-4 text-gray-500">or</div>
+                  </>
+                ) : (
+                  <div className="text-gray-600">
+                    No saved addresses found. Add one now to continue checkout.
                   </div>
                 )}
                 <button
