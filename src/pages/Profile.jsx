@@ -104,12 +104,12 @@ const Profile = () => {
 
   const handleAddressChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const newValue = type === 'checkbox' ? checked : value;
-    setNewAddress(prev => ({ ...prev, [name]: newValue }));
+    const newValue = type === "checkbox" ? checked : value;
+    setNewAddress((prev) => ({ ...prev, [name]: newValue }));
 
     // Validate the field
     const error = validateAddressField(name, newValue);
-    setErrors(prev => ({ ...prev, [name]: error }));
+    setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
   const handleChange = (e) => {
@@ -169,9 +169,9 @@ const Profile = () => {
 
     // Validate all address fields
     const addressErrors = {};
-    const addressFields = ['label', 'street', 'city', 'state', 'zipCode'];
+    const addressFields = ["label", "street", "city", "state", "zipCode"];
 
-    addressFields.forEach(field => {
+    addressFields.forEach((field) => {
       const error = validateAddressField(field, newAddress[field]);
       if (error) addressErrors[field] = error;
     });
@@ -494,7 +494,9 @@ const Profile = () => {
                       required
                     />
                     {errors.state && (
-                      <p className="text-red-500 text-sm mt-1">{errors.state}</p>
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.state}
+                      </p>
                     )}
                   </div>
                   <div>
@@ -508,15 +510,10 @@ const Profile = () => {
                       required
                     />
                     {errors.zipCode && (
-                      <p className="text-red-500 text-sm mt-1">{errors.zipCode}</p>
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.zipCode}
+                      </p>
                     )}
-                  </div>
-                </div>
-                        })
-                      }
-                      className="input-field"
-                      required
-                    />
                   </div>
                 </div>
                 <label className="flex items-center gap-2">
