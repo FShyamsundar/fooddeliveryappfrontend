@@ -148,11 +148,11 @@ const RestaurantDashboard = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">My Restaurant</h2>
               <Link
-                to={`/restaurant/${restaurant._id}`}
+                to="/restaurant-profile"
                 className="text-orange-500 hover:text-orange-600 flex items-center gap-2"
               >
                 <FiEdit size={18} />
-                View/Edit
+                Edit Profile
               </Link>
             </div>
             <div className="flex gap-4">

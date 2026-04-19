@@ -8,6 +8,13 @@ import {
   addAddress,
 } from "../services/api";
 import { CURRENCY_SYMBOL } from "../utils/constants";
+import {
+  validateRequired,
+  validateAddress,
+  validateCity,
+  validateState,
+  validatePinCode,
+} from "../utils/formValidation";
 
 const CheckoutPage = () => {
   const { cart, user, clearCart } = useAuth();
@@ -28,6 +35,7 @@ const CheckoutPage = () => {
     state: "",
     zipCode: "",
   });
+  const [addressErrors, setAddressErrors] = useState({});
 
   useEffect(() => {
     if (!selectedAddress && user?.addresses?.length > 0) {
@@ -61,17 +69,24 @@ const CheckoutPage = () => {
   const hasDefaultAddress = savedAddresses.some((addr) => addr.isDefault);
 
   const handleAddAddress = async () => {
-    if (
-      !newAddress.label.trim() ||
-      !newAddress.street.trim() ||
-      !newAddress.city.trim() ||
-      !newAddress.state.trim() ||
-      !newAddress.zipCode.trim()
-    ) {
-      setError("Complete all address fields before adding.");
+    // Validate all address fields
+    const errors = {};
+    if (!newAddress.label.trim()) errors.label = "Address label is required";
+    const streetError = validateAddress(newAddress.street);
+    if (streetError) errors.street = streetError;
+    const cityError = validateCity(newAddress.city);
+    if (cityError) errors.city = cityError;
+    const stateError = validateState(newAddress.state);
+    if (stateError) errors.state = stateError;
+    const zipError = validatePinCode(newAddress.zipCode);
+    if (zipError) errors.zipCode = zipError;
+
+    if (Object.keys(errors).length > 0) {
+      setAddressErrors(errors);
       return;
     }
 
+    setAddressErrors({});
     try {
       setLoading(true);
       await addAddress({
@@ -235,52 +250,102 @@ const CheckoutPage = () => {
         <div className="bg-white p-6 rounded-2xl shadow">
           <h3 className="text-xl font-bold mb-4">Add Delivery Address</h3>
           <div className="space-y-4">
-            <input
-              type="text"
-              placeholder="Label (Home/Work)"
-              value={newAddress.label}
-              onChange={(e) =>
-                setNewAddress({ ...newAddress, label: e.target.value })
-              }
-              className="input-field"
-            />
-            <input
-              type="text"
-              placeholder="Street Address"
-              value={newAddress.street}
-              onChange={(e) =>
-                setNewAddress({ ...newAddress, street: e.target.value })
-              }
-              className="input-field"
-            />
+            <div>
+              <input
+                type="text"
+                placeholder="Label (Home/Work)"
+                value={newAddress.label}
+                onChange={(e) => {
+                  setNewAddress({ ...newAddress, label: e.target.value });
+                  if (addressErrors.label) {
+                    setAddressErrors({ ...addressErrors, label: "" });
+                  }
+                }}
+                className={`input-field ${addressErrors.label ? "border-red-500" : ""}`}
+              />
+              {addressErrors.label && (
+                <p className="text-red-500 text-sm mt-1">
+                  {addressErrors.label}
+                </p>
+              )}
+            </div>
+            <div>
+              <input
+                type="text"
+                placeholder="Street Address"
+                value={newAddress.street}
+                onChange={(e) => {
+                  setNewAddress({ ...newAddress, street: e.target.value });
+                  if (addressErrors.street) {
+                    setAddressErrors({ ...addressErrors, street: "" });
+                  }
+                }}
+                className={`input-field ${addressErrors.street ? "border-red-500" : ""}`}
+              />
+              {addressErrors.street && (
+                <p className="text-red-500 text-sm mt-1">
+                  {addressErrors.street}
+                </p>
+              )}
+            </div>
             <div className="grid grid-cols-3 gap-3">
-              <input
-                type="text"
-                placeholder="City"
-                value={newAddress.city}
-                onChange={(e) =>
-                  setNewAddress({ ...newAddress, city: e.target.value })
-                }
-                className="input-field"
-              />
-              <input
-                type="text"
-                placeholder="State"
-                value={newAddress.state}
-                onChange={(e) =>
-                  setNewAddress({ ...newAddress, state: e.target.value })
-                }
-                className="input-field"
-              />
-              <input
-                type="text"
-                placeholder="ZIP"
-                value={newAddress.zipCode}
-                onChange={(e) =>
-                  setNewAddress({ ...newAddress, zipCode: e.target.value })
-                }
-                className="input-field"
-              />
+              <div>
+                <input
+                  type="text"
+                  placeholder="City"
+                  value={newAddress.city}
+                  onChange={(e) => {
+                    setNewAddress({ ...newAddress, city: e.target.value });
+                    if (addressErrors.city) {
+                      setAddressErrors({ ...addressErrors, city: "" });
+                    }
+                  }}
+                  className={`input-field ${addressErrors.city ? "border-red-500" : ""}`}
+                />
+                {addressErrors.city && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {addressErrors.city}
+                  </p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="State"
+                  value={newAddress.state}
+                  onChange={(e) => {
+                    setNewAddress({ ...newAddress, state: e.target.value });
+                    if (addressErrors.state) {
+                      setAddressErrors({ ...addressErrors, state: "" });
+                    }
+                  }}
+                  className={`input-field ${addressErrors.state ? "border-red-500" : ""}`}
+                />
+                {addressErrors.state && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {addressErrors.state}
+                  </p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="ZIP"
+                  value={newAddress.zipCode}
+                  onChange={(e) => {
+                    setNewAddress({ ...newAddress, zipCode: e.target.value });
+                    if (addressErrors.zipCode) {
+                      setAddressErrors({ ...addressErrors, zipCode: "" });
+                    }
+                  }}
+                  className={`input-field ${addressErrors.zipCode ? "border-red-500" : ""}`}
+                />
+                {addressErrors.zipCode && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {addressErrors.zipCode}
+                  </p>
+                )}
+              </div>
             </div>
             <button
               onClick={handleAddAddress}

@@ -7,6 +7,7 @@ import {
   FiShoppingBag,
   FiStar,
   FiTrash2,
+  FiBell,
 } from "react-icons/fi";
 import API from "../services/api";
 import { getPrimaryImage } from "../utils/constants";
@@ -21,6 +22,11 @@ const AdminDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [promotionData, setPromotionData] = useState({
+    title: "",
+    message: "",
+  });
+  const [sendingPromotion, setSendingPromotion] = useState(false);
 
   useEffect(() => {
     if (!user || user.role !== "admin") {
@@ -64,6 +70,25 @@ const AdminDashboard = () => {
       alert("Restaurant deleted successfully");
     } catch (error) {
       alert("Failed to delete restaurant");
+    }
+  };
+
+  const handleSendPromotion = async (e) => {
+    e.preventDefault();
+    if (!promotionData.title.trim() || !promotionData.message.trim()) {
+      alert("Please fill in both title and message");
+      return;
+    }
+
+    setSendingPromotion(true);
+    try {
+      await API.post("/notifications/send-promotion", promotionData);
+      alert("Promotion notification sent successfully!");
+      setPromotionData({ title: "", message: "" });
+    } catch (error) {
+      alert("Failed to send promotion notification");
+    } finally {
+      setSendingPromotion(false);
     }
   };
 
@@ -172,6 +197,16 @@ const AdminDashboard = () => {
             >
               Orders
             </button>
+            <button
+              onClick={() => setActiveTab("notifications")}
+              className={`px-6 py-4 font-medium whitespace-nowrap ${
+                activeTab === "notifications"
+                  ? "border-b-2 border-orange-500 text-orange-500"
+                  : "text-gray-600"
+              }`}
+            >
+              Notifications
+            </button>
           </div>
 
           <div className="p-6">
@@ -263,6 +298,80 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Notifications Tab */}
+            {activeTab === "notifications" && (
+              <div className="space-y-6">
+                <h3 className="font-bold text-lg mb-4">Send Notifications</h3>
+
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h4 className="font-semibold mb-4">
+                    Send Promotion Notification
+                  </h4>
+                  <form onSubmit={handleSendPromotion} className="space-y-4">
+                    <div>
+                      <label className="block font-medium mb-2">Title</label>
+                      <input
+                        type="text"
+                        value={promotionData.title}
+                        onChange={(e) =>
+                          setPromotionData((prev) => ({
+                            ...prev,
+                            title: e.target.value,
+                          }))
+                        }
+                        className="input-field"
+                        placeholder="e.g., Special 50% Off Today!"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium mb-2">Message</label>
+                      <textarea
+                        value={promotionData.message}
+                        onChange={(e) =>
+                          setPromotionData((prev) => ({
+                            ...prev,
+                            message: e.target.value,
+                          }))
+                        }
+                        className="input-field"
+                        rows="3"
+                        placeholder="Describe the promotion or offer..."
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={sendingPromotion}
+                      className="btn-primary disabled:opacity-50"
+                    >
+                      {sendingPromotion ? "Sending..." : "Send to All Users"}
+                    </button>
+                  </form>
+                </div>
+
+                <div className="bg-blue-50 rounded-lg p-6">
+                  <h4 className="font-semibold mb-2 text-blue-900">
+                    Notification Types
+                  </h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>
+                      • <strong>Order Updates:</strong> Automatically sent when
+                      order status changes
+                    </li>
+                    <li>
+                      • <strong>New Restaurants:</strong> Automatically sent
+                      when restaurants join
+                    </li>
+                    <li>
+                      • <strong>Promotions:</strong> Manually sent by admins
+                      like above
+                    </li>
+                  </ul>
+                </div>
               </div>
             )}
           </div>

@@ -26,6 +26,7 @@ export const toggleFavorite = (id) => API.post(`/auth/favorite/${id}`);
 
 // Restaurants
 export const getRestaurants = (params) => API.get("/restaurants", { params });
+export const getMyRestaurants = () => API.get("/restaurants/my");
 export const getRestaurantById = (id) => API.get(`/restaurants/${id}`);
 export const getRestaurantMenu = (id) => API.get(`/restaurants/${id}/menu`);
 export const createRestaurant = (data) => API.post("/restaurants", data);
@@ -60,5 +61,17 @@ export const replyToReview = (id, reply) =>
   API.post(`/reviews/${id}/reply`, { reply });
 export const deleteReview = (id) => API.delete(`/reviews/${id}`);
 export const getRestaurantOrders = () => API.get("/orders/restaurant");
+
+// Notifications
+export const getUserNotifications = (params) =>
+  API.get("/notifications", { params });
+export const markNotificationAsRead = (id) =>
+  API.put(`/notifications/${id}/read`);
+export const markAllNotificationsAsRead = () =>
+  API.put("/notifications/read-all");
+export const getNotificationPreferences = () =>
+  API.get("/notifications/preferences");
+export const updateNotificationPreferences = (data) =>
+  API.put("/notifications/preferences", data);
 
 export default API;

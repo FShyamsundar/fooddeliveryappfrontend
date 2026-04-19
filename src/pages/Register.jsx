@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { validateEmail, validatePhone } from "../utils/formValidation";
+import {
+  validateEmail,
+  validatePhone,
+  validatePassword,
+  validateRequired,
+  validateName,
+} from "../utils/formValidation";
 
 const Register = () => {
   const { register, user } = useAuth();
@@ -13,7 +19,7 @@ const Register = () => {
     confirmPassword: "",
     phone: "",
   });
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -22,32 +28,56 @@ const Register = () => {
     }
   }, [user, navigate]);
 
+  const validateField = (name, value) => {
+    let error = null;
+    switch (name) {
+      case "name":
+        error = validateName(value, "Full name");
+        break;
+      case "email":
+        error = validateEmail(value);
+        break;
+      case "phone":
+        error = validatePhone(value);
+        break;
+      case "password":
+        error = validatePassword(value);
+        break;
+      case "confirmPassword":
+        if (!value.trim()) {
+          error = "Please confirm your password.";
+        } else if (value !== formData.password) {
+          error = "Passwords do not match.";
+        }
+        break;
+      default:
+        break;
+    }
+    setErrors((prev) => ({ ...prev, [name]: error }));
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    validateField(name, value);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.name.trim()) {
-      setError("Please enter your full name.");
-      return;
-    }
-    if (!validateEmail(formData.email)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-    if (!validatePhone(formData.phone)) {
-      setError("Please enter a valid phone number.");
-      return;
-    }
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long.");
-      return;
-    }
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match.");
+    // Validate all fields
+    const newErrors = {};
+    Object.keys(formData).forEach((key) => {
+      const error = validateField(key, formData[key]);
+      if (error) newErrors[key] = error;
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
     setLoading(true);
-    setError("");
     try {
       await register({
         name: formData.name.trim(),
@@ -57,7 +87,9 @@ const Register = () => {
       });
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.message || "Registration failed");
+      setErrors({
+        general: err.response?.data?.message || "Registration failed",
+      });
     } finally {
       setLoading(false);
     }
@@ -73,9 +105,9 @@ const Register = () => {
 
         <div className="card p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
+            {errors.general && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
-                {error}
+                {errors.general}
               </div>
             )}
 
@@ -85,13 +117,15 @@ const Register = () => {
               </label>
               <input
                 type="text"
+                name="name"
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                className="input-field"
+                onChange={handleChange}
+                className={`input-field ${errors.name ? "border-red-500" : ""}`}
                 required
               />
+              {errors.name && (
+                <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+              )}
             </div>
 
             <div>
@@ -100,13 +134,15 @@ const Register = () => {
               </label>
               <input
                 type="email"
+                name="email"
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                className="input-field"
+                onChange={handleChange}
+                className={`input-field ${errors.email ? "border-red-500" : ""}`}
                 required
               />
+              {errors.email && (
+                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+              )}
             </div>
 
             <div>
@@ -115,12 +151,14 @@ const Register = () => {
               </label>
               <input
                 type="tel"
+                name="phone"
                 value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
-                className="input-field"
+                onChange={handleChange}
+                className={`input-field ${errors.phone ? "border-red-500" : ""}`}
               />
+              {errors.phone && (
+                <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+              )}
             </div>
 
             <div>
@@ -129,14 +167,15 @@ const Register = () => {
               </label>
               <input
                 type="password"
+                name="password"
                 value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                className="input-field"
+                onChange={handleChange}
+                className={`input-field ${errors.password ? "border-red-500" : ""}`}
                 required
-                minLength="6"
               />
+              {errors.password && (
+                <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+              )}
             </div>
 
             <div>
@@ -145,13 +184,17 @@ const Register = () => {
               </label>
               <input
                 type="password"
+                name="confirmPassword"
                 value={formData.confirmPassword}
-                onChange={(e) =>
-                  setFormData({ ...formData, confirmPassword: e.target.value })
-                }
-                className="input-field"
+                onChange={handleChange}
+                className={`input-field ${errors.confirmPassword ? "border-red-500" : ""}`}
                 required
               />
+              {errors.confirmPassword && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.confirmPassword}
+                </p>
+              )}
             </div>
 
             <button

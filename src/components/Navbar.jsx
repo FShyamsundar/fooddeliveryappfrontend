@@ -11,6 +11,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import { useState } from "react";
+import NotificationDropdown from "./NotificationDropdown";
 
 const Navbar = () => {
   const { user, logout, cart } = useAuth();
@@ -45,6 +46,10 @@ const Navbar = () => {
                       <FiPackage size={18} />
                       <span>Dashboard</span>
                     </Link>
+                    <Link to="/restaurant-profile" className="btn-ghost">
+                      <FiEdit size={18} />
+                      <span>Profile</span>
+                    </Link>
                     <Link to="/menu-management" className="btn-ghost">
                       <FiEdit size={18} />
                       <span>Menu</span>
@@ -78,6 +83,8 @@ const Navbar = () => {
                     </Link>
                   </>
                 )}
+
+                <NotificationDropdown />
 
                 <Link
                   to="/profile"
@@ -131,6 +138,14 @@ const Navbar = () => {
                         <span>Dashboard</span>
                       </Link>
                       <Link
+                        to="/restaurant-profile"
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <FiEdit size={20} />
+                        <span>Profile</span>
+                      </Link>
+                      <Link
                         to="/menu-management"
                         className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 transition-colors"
                         onClick={() => setIsMenuOpen(false)}
@@ -177,6 +192,10 @@ const Navbar = () => {
                       </Link>
                     </>
                   )}
+
+                  <div className="px-3 py-2">
+                    <NotificationDropdown />
+                  </div>
 
                   <Link
                     to="/profile"

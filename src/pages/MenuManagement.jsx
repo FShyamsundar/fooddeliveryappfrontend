@@ -8,6 +8,13 @@ import {
   updateMenuItem,
   deleteMenuItem,
 } from "../services/api";
+import {
+  validateRequired,
+  validateNumeric,
+  validateName,
+  validatePrice,
+  validateQuantity,
+} from "../utils/formValidation";
 import { FiPlus, FiX, FiEdit2, FiTrash2 } from "react-icons/fi";
 
 const MenuManagement = () => {
@@ -28,6 +35,7 @@ const MenuManagement = () => {
   });
   const [extraInput, setExtraInput] = useState({ name: "", price: "" });
   const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     if (!user || user.role !== "restaurant") {
@@ -52,18 +60,44 @@ const MenuManagement = () => {
     }
   };
 
+  const validateField = (name, value) => {
+    let error = null;
+    switch (name) {
+      case "name":
+        error = validateName(value, "Item name");
+        break;
+      case "price":
+        error = validatePrice(value);
+        break;
+      case "category":
+        error = validateRequired(value, "Category");
+        break;
+      default:
+        break;
+    }
+    setFieldErrors((prev) => ({ ...prev, [name]: error }));
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    validateField(name, value);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) {
-      setFormError("Item name is required.");
-      return;
-    }
-    if (!formData.price || Number(formData.price) <= 0) {
-      setFormError("Please enter a valid price greater than zero.");
-      return;
-    }
-    if (!formData.category.trim()) {
-      setFormError("Please choose a category.");
+
+    // Validate all fields
+    const newErrors = {};
+    Object.keys(formData).forEach((key) => {
+      if (key !== "extras" && key !== "isVegetarian" && key !== "isVegan") {
+        const error = validateField(key, formData[key]);
+        if (error) newErrors[key] = error;
+      }
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(newErrors);
       return;
     }
 
@@ -83,7 +117,7 @@ const MenuManagement = () => {
       fetchData();
       closeModal();
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to save menu item");
+      setFormError(error.response?.data?.message || "Failed to save menu item");
     }
   };
 
@@ -252,22 +286,25 @@ const MenuManagement = () => {
                 <label className="block font-semibold mb-1">Name</label>
                 <input
                   type="text"
+                  name="name"
                   value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="input-field"
+                  onChange={handleChange}
+                  className={`input-field ${fieldErrors.name ? "border-red-500" : ""}`}
                   required
                 />
+                {fieldErrors.name && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {fieldErrors.name}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block font-semibold mb-1">Description</label>
                 <textarea
+                  name="description"
                   value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
+                  onChange={handleChange}
                   className="input-field"
                   rows="3"
                 />
@@ -277,11 +314,10 @@ const MenuManagement = () => {
                 <div>
                   <label className="block font-semibold mb-1">Category</label>
                   <select
+                    name="category"
                     value={formData.category}
-                    onChange={(e) =>
-                      setFormData({ ...formData, category: e.target.value })
-                    }
-                    className="input-field"
+                    onChange={handleChange}
+                    className={`input-field ${fieldErrors.category ? "border-red-500" : ""}`}
                   >
                     {categories.map((cat) => (
                       <option key={cat} value={cat}>
@@ -289,6 +325,11 @@ const MenuManagement = () => {
                       </option>
                     ))}
                   </select>
+                  {fieldErrors.category && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {fieldErrors.category}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -296,13 +337,17 @@ const MenuManagement = () => {
                   <input
                     type="number"
                     step="0.01"
+                    name="price"
                     value={formData.price}
-                    onChange={(e) =>
-                      setFormData({ ...formData, price: e.target.value })
-                    }
-                    className="input-field"
+                    onChange={handleChange}
+                    className={`input-field ${fieldErrors.price ? "border-red-500" : ""}`}
                     required
                   />
+                  {fieldErrors.price && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {fieldErrors.price}
+                    </p>
+                  )}
                 </div>
               </div>
 

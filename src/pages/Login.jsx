@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { validateEmail } from "../utils/formValidation";
+import { validateEmail, validateRequired } from "../utils/formValidation";
 
 const Login = () => {
   const { login, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -19,24 +19,49 @@ const Login = () => {
 
   const from = location.state?.from || "/";
 
+  const validateField = (name, value) => {
+    let error = null;
+    switch (name) {
+      case "email":
+        error = validateEmail(value);
+        break;
+      case "password":
+        error = validateRequired(value, "Password");
+        break;
+      default:
+        break;
+    }
+    setErrors((prev) => ({ ...prev, [name]: error }));
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    validateField(name, value);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.email.trim() || !validateEmail(formData.email)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-    if (!formData.password.trim()) {
-      setError("Please enter your password.");
+
+    // Validate all fields
+    const newErrors = {};
+    Object.keys(formData).forEach((key) => {
+      const error = validateField(key, formData[key]);
+      if (error) newErrors[key] = error;
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
     setLoading(true);
-    setError("");
+    setErrors({});
     try {
       await login(formData);
       navigate(from);
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
+      setErrors({ general: err.response?.data?.message || "Login failed" });
     } finally {
       setLoading(false);
     }
@@ -52,9 +77,9 @@ const Login = () => {
 
         <div className="card p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
+            {errors.general && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
-                {error}
+                {errors.general}
               </div>
             )}
 
@@ -64,13 +89,15 @@ const Login = () => {
               </label>
               <input
                 type="email"
+                name="email"
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                className="input-field"
+                onChange={handleChange}
+                className={`input-field ${errors.email ? "border-red-500" : ""}`}
                 required
               />
+              {errors.email && (
+                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+              )}
             </div>
 
             <div>
@@ -79,13 +106,15 @@ const Login = () => {
               </label>
               <input
                 type="password"
+                name="password"
                 value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                className="input-field"
+                onChange={handleChange}
+                className={`input-field ${errors.password ? "border-red-500" : ""}`}
                 required
               />
+              {errors.password && (
+                <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+              )}
             </div>
 
             <button

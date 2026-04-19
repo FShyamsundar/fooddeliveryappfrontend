@@ -5,6 +5,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import RestaurantPage from "./pages/RestaurantPage";
@@ -17,6 +18,8 @@ import Register from "./pages/Register";
 import RestaurantDashboard from "./pages/RestaurantDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import MenuManagement from "./pages/MenuManagement";
+import RestaurantProfile from "./pages/RestaurantProfile";
+import Notifications from "./pages/Notifications";
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -83,6 +86,22 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/restaurant-profile"
+          element={
+            <PrivateRoute>
+              <RestaurantProfile />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <PrivateRoute>
+              <Notifications />
+            </PrivateRoute>
+          }
+        />
+        <Route
           path="/admin-dashboard"
           element={
             <PrivateRoute>
@@ -107,7 +126,9 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <NotificationProvider>
+        <AppRoutes />
+      </NotificationProvider>
     </AuthProvider>
   );
 }

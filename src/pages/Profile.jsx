@@ -8,7 +8,16 @@ import {
   updateAddress,
   deleteAddress,
 } from "../services/api";
-import { validateEmail, validatePhone } from "../utils/formValidation";
+import {
+  validateEmail,
+  validatePhone,
+  validateName,
+  validateAddress,
+  validateCity,
+  validateState,
+  validatePinCode,
+  validateRequired,
+} from "../utils/formValidation";
 import { FiUser, FiMapPin, FiCreditCard, FiHome } from "react-icons/fi";
 
 const Profile = () => {
@@ -30,6 +39,7 @@ const Profile = () => {
   });
   const [editingAddressId, setEditingAddressId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -50,18 +60,76 @@ const Profile = () => {
     }
   };
 
+  const validateField = (name, value) => {
+    let error = null;
+    switch (name) {
+      case "name":
+        error = validateName(value, "Name");
+        break;
+      case "email":
+        error = validateEmail(value);
+        break;
+      case "phone":
+        error = validatePhone(value);
+        break;
+      default:
+        break;
+    }
+    setErrors((prev) => ({ ...prev, [name]: error }));
+  };
+
+  const validateAddressField = (name, value) => {
+    let error = null;
+    switch (name) {
+      case "label":
+        error = validateRequired(value, "Address label");
+        break;
+      case "street":
+        error = validateAddress(value);
+        break;
+      case "city":
+        error = validateCity(value);
+        break;
+      case "state":
+        error = validateState(value);
+        break;
+      case "zipCode":
+        error = validatePinCode(value);
+        break;
+      default:
+        break;
+    }
+    return error;
+  };
+
+  const handleAddressChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    const newValue = type === 'checkbox' ? checked : value;
+    setNewAddress(prev => ({ ...prev, [name]: newValue }));
+
+    // Validate the field
+    const error = validateAddressField(name, newValue);
+    setErrors(prev => ({ ...prev, [name]: error }));
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    validateField(name, value);
+  };
+
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) {
-      setMessage("Please enter your name.");
-      return;
-    }
-    if (!validateEmail(formData.email)) {
-      setMessage("Please enter a valid email address.");
-      return;
-    }
-    if (!validatePhone(formData.phone)) {
-      setMessage("Please enter a valid phone number.");
+
+    // Validate all fields
+    const newErrors = {};
+    Object.keys(formData).forEach((key) => {
+      const error = validateField(key, formData[key]);
+      if (error) newErrors[key] = error;
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -76,7 +144,9 @@ const Profile = () => {
       setMessage("Profile updated successfully");
       fetchProfile();
     } catch (error) {
-      setMessage(error.response?.data?.message || "Error updating profile");
+      setErrors({
+        general: error.response?.data?.message || "Error updating profile",
+      });
     } finally {
       setLoading(false);
     }
@@ -96,14 +166,19 @@ const Profile = () => {
 
   const handleAddAddress = async (e) => {
     e.preventDefault();
-    if (
-      !newAddress.label.trim() ||
-      !newAddress.street.trim() ||
-      !newAddress.city.trim() ||
-      !newAddress.state.trim() ||
-      !newAddress.zipCode.trim()
-    ) {
-      setMessage("Please complete all address fields before saving.");
+
+    // Validate all address fields
+    const addressErrors = {};
+    const addressFields = ['label', 'street', 'city', 'state', 'zipCode'];
+
+    addressFields.forEach(field => {
+      const error = validateAddressField(field, newAddress[field]);
+      if (error) addressErrors[field] = error;
+    });
+
+    if (Object.keys(addressErrors).length > 0) {
+      setErrors(addressErrors);
+      setMessage("Please fix the errors below.");
       return;
     }
 
@@ -256,40 +331,51 @@ const Profile = () => {
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold mb-4">Personal Information</h2>
             <form onSubmit={handleUpdateProfile} className="space-y-4">
+              {errors.general && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
+                  {errors.general}
+                </div>
+              )}
               <div>
                 <label className="block font-semibold mb-2">Name</label>
                 <input
                   type="text"
+                  name="name"
                   value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="input-field"
+                  onChange={handleChange}
+                  className={`input-field ${errors.name ? "border-red-500" : ""}`}
                   required
                 />
+                {errors.name && (
+                  <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                )}
               </div>
               <div>
                 <label className="block font-semibold mb-2">Email</label>
                 <input
                   type="email"
+                  name="email"
                   value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  className="input-field"
+                  onChange={handleChange}
+                  className={`input-field ${errors.email ? "border-red-500" : ""}`}
                   required
                 />
+                {errors.email && (
+                  <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                )}
               </div>
               <div>
                 <label className="block font-semibold mb-2">Phone</label>
                 <input
                   type="tel"
+                  name="phone"
                   value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                  className="input-field"
+                  onChange={handleChange}
+                  className={`input-field ${errors.phone ? "border-red-500" : ""}`}
                 />
+                {errors.phone && (
+                  <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+                )}
               </div>
               <button type="submit" disabled={loading} className="btn-primary">
                 {loading ? "Updating..." : "Update Profile"}
@@ -356,13 +442,15 @@ const Profile = () => {
                   </label>
                   <input
                     type="text"
+                    name="label"
                     value={newAddress.label}
-                    onChange={(e) =>
-                      setNewAddress({ ...newAddress, label: e.target.value })
-                    }
-                    className="input-field"
+                    onChange={handleAddressChange}
+                    className={`input-field ${errors.label ? "border-red-500" : ""}`}
                     required
                   />
+                  {errors.label && (
+                    <p className="text-red-500 text-sm mt-1">{errors.label}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block font-semibold mb-2">
@@ -370,48 +458,60 @@ const Profile = () => {
                   </label>
                   <input
                     type="text"
+                    name="street"
                     value={newAddress.street}
-                    onChange={(e) =>
-                      setNewAddress({ ...newAddress, street: e.target.value })
-                    }
-                    className="input-field"
+                    onChange={handleAddressChange}
+                    className={`input-field ${errors.street ? "border-red-500" : ""}`}
                     required
                   />
+                  {errors.street && (
+                    <p className="text-red-500 text-sm mt-1">{errors.street}</p>
+                  )}
                 </div>
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
                     <label className="block font-semibold mb-2">City</label>
                     <input
                       type="text"
+                      name="city"
                       value={newAddress.city}
-                      onChange={(e) =>
-                        setNewAddress({ ...newAddress, city: e.target.value })
-                      }
-                      className="input-field"
+                      onChange={handleAddressChange}
+                      className={`input-field ${errors.city ? "border-red-500" : ""}`}
                       required
                     />
+                    {errors.city && (
+                      <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block font-semibold mb-2">State</label>
                     <input
                       type="text"
+                      name="state"
                       value={newAddress.state}
-                      onChange={(e) =>
-                        setNewAddress({ ...newAddress, state: e.target.value })
-                      }
-                      className="input-field"
+                      onChange={handleAddressChange}
+                      className={`input-field ${errors.state ? "border-red-500" : ""}`}
                       required
                     />
+                    {errors.state && (
+                      <p className="text-red-500 text-sm mt-1">{errors.state}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block font-semibold mb-2">ZIP Code</label>
                     <input
                       type="text"
+                      name="zipCode"
                       value={newAddress.zipCode}
-                      onChange={(e) =>
-                        setNewAddress({
-                          ...newAddress,
-                          zipCode: e.target.value,
+                      onChange={handleAddressChange}
+                      className={`input-field ${errors.zipCode ? "border-red-500" : ""}`}
+                      required
+                    />
+                    {errors.zipCode && (
+                      <p className="text-red-500 text-sm mt-1">{errors.zipCode}</p>
+                    )}
+                  </div>
+                </div>
                         })
                       }
                       className="input-field"
@@ -422,13 +522,9 @@ const Profile = () => {
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
+                    name="isDefault"
                     checked={newAddress.isDefault}
-                    onChange={(e) =>
-                      setNewAddress({
-                        ...newAddress,
-                        isDefault: e.target.checked,
-                      })
-                    }
+                    onChange={handleAddressChange}
                   />
                   <span>Set as default address</span>
                 </label>
