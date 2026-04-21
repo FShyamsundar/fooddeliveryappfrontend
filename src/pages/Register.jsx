@@ -67,10 +67,25 @@ const Register = () => {
 
     // Validate all fields
     const newErrors = {};
-    Object.keys(formData).forEach((key) => {
-      const error = validateField(key, formData[key]);
-      if (error) newErrors[key] = error;
-    });
+
+    const nameError = validateName(formData.name, "Full name");
+    if (nameError) newErrors.name = nameError;
+
+    const emailError = validateEmail(formData.email);
+    if (emailError) newErrors.email = emailError;
+
+    const phoneError = validatePhone(formData.phone);
+    if (phoneError) newErrors.phone = phoneError;
+
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) newErrors.password = passwordError;
+
+    const confirmError = formData.confirmPassword.trim() === "" 
+      ? "Please confirm your password." 
+      : formData.confirmPassword !== formData.password 
+        ? "Passwords do not match." 
+        : null;
+    if (confirmError) newErrors.confirmPassword = confirmError;
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);

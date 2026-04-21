@@ -45,10 +45,12 @@ const Login = () => {
 
     // Validate all fields
     const newErrors = {};
-    Object.keys(formData).forEach((key) => {
-      const error = validateField(key, formData[key]);
-      if (error) newErrors[key] = error;
-    });
+
+    const emailError = validateEmail(formData.email);
+    if (emailError) newErrors.email = emailError;
+
+    const passwordError = validateRequired(formData.password, "Password");
+    if (passwordError) newErrors.password = passwordError;
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);

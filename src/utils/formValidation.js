@@ -97,8 +97,12 @@ export const validateState = (state) => {
   return null;
 };
 
-export const validateZipCode = (zip) =>
-  /^[0-9A-Za-z\s-]{4,10}$/.test(zip.trim());
+export const validateZipCode = (zip) => {
+  if (!zip || zip.trim() === "") return "Zip code is required.";
+  if (!/^[0-9A-Za-z\s-]{4,10}$/.test(zip.trim()))
+    return "Please enter a valid zip code.";
+  return null;
+};
 
 export const hasMinLength = (value, min) => value?.trim().length >= min;
 
